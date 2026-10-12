@@ -519,7 +519,7 @@ export default function AuthModal() {
                     value={adminPassword}
                     onChange={(e) => setAdminPassword(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && doAdminSetup()}
-                    placeholder={t('newUserPassword')}
+                    placeholder={t('passwordPlaceholder')}
                     className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
                     autoComplete="new-password"
                   />
