@@ -1,0 +1,23 @@
+services:
+  hub:
+    build: .
+    ports:
+      - "${SERVER_PORT:-8099}:8099"
+    environment:
+      SERVER_PORT: 8099
+      STORAGE_PATH: /data/storage
+      DATA_PATH: /data
+      APP_JWT_SECRET: ${APP_JWT_SECRET:-change-me-in-production}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-noreply@example.com}
+      MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-false}
+      MAIL_SMTP_STARTTLS: ${MAIL_SMTP_STARTTLS:-false}
+    volumes:
+      - nsm-data:/data
+    restart: unless-stopped
+
+volumes:
+  nsm-data:
