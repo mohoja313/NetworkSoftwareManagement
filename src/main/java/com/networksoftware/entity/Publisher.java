@@ -27,6 +27,13 @@ public class Publisher {
   @Column(nullable = false, length = 120)
   private String displayName;
 
+  /** Salted SHA-256 password set by the server manager (null = OTP-only login). */
+  @Column(length = 64)
+  private String passwordSalt;
+
+  @Column(length = 64)
+  private String passwordHash;
+
   @Column(nullable = false, updatable = false)
   private Instant createdAt;
 
@@ -47,5 +54,10 @@ public class Publisher {
   public String getEmail() { return email; }
   public String getDisplayName() { return displayName; }
   public void setDisplayName(String displayName) { this.displayName = displayName; }
+  public String getPasswordSalt() { return passwordSalt; }
+  public void setPasswordSalt(String passwordSalt) { this.passwordSalt = passwordSalt; }
+  public String getPasswordHash() { return passwordHash; }
+  public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+  public boolean hasPassword() { return passwordHash != null && !passwordHash.isBlank(); }
   public Instant getCreatedAt() { return createdAt; }
 }

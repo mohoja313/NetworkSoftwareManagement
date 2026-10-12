@@ -52,6 +52,18 @@ export interface AuthResult {
   token: string;
   email: string;
   displayName: string;
+  role?: string;
+  isAdmin?: boolean;
+  needEmailSetup?: boolean;
+  adminEmail?: string | null;
+}
+
+export interface AdminUser {
+  id: number;
+  email: string;
+  displayName: string;
+  hasPassword: boolean;
+  createdAt: string | null;
 }
 
 export interface MeResult {

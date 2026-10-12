@@ -77,6 +77,9 @@ e.g. `http://192.168.1.50:8099`).
 | `STORAGE_PATH` | `./data/storage` | Uploaded files & icons directory |
 | `DATA_PATH` | `./data` | H2 database files directory |
 | `APP_JWT_SECRET` | dev default | **Change in production!** JWT signing secret |
+| `APP_ADMIN_USERNAME` | `Admin` | Manager login name (typed instead of an email) |
+| `APP_ADMIN_PASSWORD` | `admin` | **Change in production!** Manager (`Admin`) password |
+| `APP_ADMIN_EMAIL` | _(empty)_ | Manager Gmail (sender for user passwords/codes; also set after first Admin login) |
 | `APP_MAX_FILE_SIZE` | `2GB` | Max upload size (Spring multipart) |
 | `MAIL_HOST` | _(empty)_ | SMTP host. **Empty = dev mode:** the OTP code is printed to the console log instead of emailed |
 | `MAIL_PORT` | `587` | SMTP port |
@@ -95,8 +98,21 @@ SERVER_PORT=8099 ./run.sh
 ## How it works
 
 - **Download** is public, with HTTP Range (resume) + streaming + per-file download counter.
-- **Upload** needs Gmail login: `POST /api/auth/request-code` → 6-digit code (10 min, 5 attempts,
-  rate-limited) → `POST /api/auth/verify-code` → JWT (`Authorization: Bearer`).
+- **Upload** needs Gmail login, two ways:
+  - Code: `POST /api/auth/request-code` → 6-digit code (10 min, 5 attempts,
+    rate-limited) → `POST /api/auth/verify-code` → JWT (`Authorization: Bearer`).
+  - Password: the server manager sets a password for you → `POST /api/auth/password-login`
+    `{email, password}` → JWT. No code needed.
+- **Server manager (Admin) — one-time login:** in the login box type `Admin` instead of an email,
+  then enter the initial password (default `admin` — change it in `application.yml`
+  `app.admin.password` or via the `APP_ADMIN_PASSWORD` env var). **This works only once:**
+  right there you register your own Gmail + password, and from that moment the `Admin`
+  name is dead — every later manager login uses your own email + password
+  (`POST /api/auth/password-login`, you get an admin token). Then, in the Admin panel,
+  you enter each member's Gmail, define a password for them, and it is emailed to them
+  **from your email** (needs SMTP config with your address) — or just tell them the
+  password, both work. The manager can also publish and edit/delete any software,
+  and change his own password later in the panel.
 - Every upload records **publisher Gmail, uploader IP** (proxy-aware via `X-Forwarded-For`),
   timestamp, mandatory **platform label** (Android/Windows/Linux/macOS), extension check per
   platform, SHA-256 hash, optional icon. Owners can edit/delete their own software.
@@ -106,7 +122,16 @@ SERVER_PORT=8099 ./run.sh
 
 ```
 POST /api/auth/request-code        {email}            -> {message}
-POST /api/auth/verify-code         {email, code}      -> {token, email, displayName}
+POST /api/auth/verify-code         {email, code}      -> {token, email, displayName, ...}
+POST /api/auth/password-login      {email, password}  -> {token, email, displayName, ...}
+POST /api/auth/admin-login         {username, password} -> {token, ...} (ONE-TIME only, then 410)
+POST /api/auth/admin-setup         (admin) {email, password} -> {token, ...} (register manager's own credentials)
+POST /api/auth/admin/email         (admin) {email}    -> {token, ...}  (change manager Gmail later)
+POST /api/admin/password           (admin) {currentPassword, newPassword}
+GET  /api/admin/info               (admin)            -> {username, email, emailSetup}
+GET  /api/admin/users              (admin)            -> [{id, email, displayName, hasPassword}]
+POST /api/admin/users              (admin) {email, password, displayName?, sendEmail?}
+DELETE /api/admin/users/{id}/password (admin)        -> clears the user password
 GET  /api/auth/me                  (auth)             -> {email, displayName}
 GET  /api/software?platform=&publisherId=&q=&sort=newest|popular|size|oldest&page=&size=
 GET  /api/software/{id}

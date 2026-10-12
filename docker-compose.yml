@@ -8,6 +8,9 @@ services:
       STORAGE_PATH: /data/storage
       DATA_PATH: /data
       APP_JWT_SECRET: ${APP_JWT_SECRET:-change-me-in-production}
+      APP_ADMIN_USERNAME: ${APP_ADMIN_USERNAME:-Admin}
+      APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:-admin}
+      APP_ADMIN_EMAIL: ${APP_ADMIN_EMAIL:-}
       MAIL_HOST: ${MAIL_HOST:-}
       MAIL_PORT: ${MAIL_PORT:-587}
       MAIL_USERNAME: ${MAIL_USERNAME:-}

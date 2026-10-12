@@ -15,6 +15,7 @@ public class AppProperties {
   private final Otp otp = new Otp();
   private final Jwt jwt = new Jwt();
   private final Mail mail = new Mail();
+  private final Admin admin = new Admin();
 
   public String getStoragePath() { return storagePath; }
   public void setStoragePath(String storagePath) { this.storagePath = storagePath; }
@@ -25,6 +26,7 @@ public class AppProperties {
   public Otp getOtp() { return otp; }
   public Jwt getJwt() { return jwt; }
   public Mail getMail() { return mail; }
+  public Admin getAdmin() { return admin; }
 
   public static class Otp {
     /** OTP validity duration in minutes. */
@@ -60,5 +62,26 @@ public class AppProperties {
 
     public String getFrom() { return from; }
     public void setFrom(String from) { this.from = from; }
+  }
+
+  /**
+   * Server manager account ("Admin").
+   * The password lives here so every deployment can change it via YAML/env:
+   * {@code app.admin.password} / {@code APP_ADMIN_PASSWORD} (default "admin").
+   */
+  public static class Admin {
+    /** Username typed instead of an email to log in as manager (case-insensitive). */
+    private String username = "Admin";
+    /** Manager password; override with APP_ADMIN_PASSWORD in production. */
+    private String password = "admin";
+    /** Manager Gmail used as the sender for user passwords/codes (set after first login). */
+    private String email = "";
+
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
   }
 }

@@ -74,8 +74,13 @@ export default function Header() {
                 {t('upload')}
               </button>
               <span className="hidden max-w-[140px] truncate text-sm font-semibold lg:block" title={user.email}>
-                {user.displayName}
+                {user.isAdmin ? 'Admin' : user.displayName}
               </span>
+              {user.isAdmin && (
+                <span className="hidden rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-extrabold text-brand-700 sm:block dark:bg-brand-500/15 dark:text-brand-300">
+                  {t('admin')}
+                </span>
+              )}
               <button
                 type="button"
                 onClick={logout}

@@ -34,6 +34,8 @@ import com.networksoftware.dto.SoftwareUpdateRequest;
 import com.networksoftware.entity.Software;
 import com.networksoftware.security.AuthContext;
 import com.networksoftware.security.ClientIpUtil;
+import com.networksoftware.service.AdminService;
+import com.networksoftware.service.PublisherService;
 import com.networksoftware.service.RateLimitService;
 import com.networksoftware.service.SoftwareService;
 import com.networksoftware.service.StorageService;
@@ -48,11 +50,16 @@ public class SoftwareController {
   private final SoftwareService software;
   private final StorageService storage;
   private final RateLimitService rateLimit;
+  private final PublisherService publishers;
+  private final AdminService admin;
 
-  public SoftwareController(SoftwareService software, StorageService storage, RateLimitService rateLimit) {
+  public SoftwareController(SoftwareService software, StorageService storage, RateLimitService rateLimit,
+                            PublisherService publishers, AdminService admin) {
     this.software = software;
     this.storage = storage;
     this.rateLimit = rateLimit;
+    this.publishers = publishers;
+    this.admin = admin;
   }
 
   @GetMapping
@@ -85,20 +92,31 @@ public class SoftwareController {
     if (!rateLimit.allow("upload:" + ip, 20, 3600)) {
       throw new ApiException(429, "RATE_LIMITED", "Too many uploads from this IP. Try again later.");
     }
-    SoftwareDto created = software.publish(s.email(), ip, file, icon, name, version, description, platform);
+    // The manager publishes under his own Gmail (set after the first Admin login).
+    String publisherEmail = s.email();
+    if (s.isAdmin()) {
+      String adminEmail = admin.getAdminEmail();
+      if (adminEmail == null || adminEmail.isBlank()) {
+        throw new ApiException(400, "ADMIN_EMAIL_REQUIRED",
+            "Set the manager email first (Admin panel), then publish.");
+      }
+      publishers.getOrCreate(adminEmail);
+      publisherEmail = adminEmail;
+    }
+    SoftwareDto created = software.publish(publisherEmail, ip, file, icon, name, version, description, platform);
     return ResponseEntity.status(HttpStatus.CREATED).body(created);
   }
 
   @PutMapping("/{id}")
   public SoftwareDto update(@PathVariable long id, @Valid @RequestBody SoftwareUpdateRequest req) {
     AuthContext.Session s = AuthContext.require();
-    return software.update(id, s.publisherId(), req);
+    return software.update(id, s.publisherId(), s.isAdmin(), req);
   }
 
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> delete(@PathVariable long id) {
     AuthContext.Session s = AuthContext.require();
-    software.delete(id, s.publisherId());
+    software.delete(id, s.publisherId(), s.isAdmin());
     return ResponseEntity.noContent().build();
   }
 

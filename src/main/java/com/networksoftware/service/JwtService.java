@@ -30,6 +30,10 @@ public class JwtService {
   }
 
   public String issue(String email, Long publisherId) {
+    return issue(email, publisherId, "user");
+  }
+
+  public String issue(String email, Long publisherId, String role) {
     try {
       long now = Instant.now().getEpochSecond();
       long exp = Instant.now().plusSeconds(props.getJwt().getTtlDays() * 24 * 3600).getEpochSecond();
@@ -37,6 +41,7 @@ public class JwtService {
           .put("alg", "HS256").put("typ", "JWT");
       ObjectNode payload = mapper.createObjectNode()
           .put("sub", email).put("pid", publisherId)
+          .put("role", role == null ? "user" : role)
           .put("iat", now).put("exp", exp);
       String h = base64Url(mapper.writeValueAsBytes(header));
       String p = base64Url(mapper.writeValueAsBytes(payload));
@@ -47,7 +52,10 @@ public class JwtService {
     }
   }
 
-  public record Session(String email, Long publisherId) {
+  public record Session(String email, Long publisherId, String role) {
+    public boolean isAdmin() {
+      return "admin".equalsIgnoreCase(role);
+    }
   }
 
   /** Returns the session or null when the token is invalid/expired. */
@@ -64,8 +72,13 @@ public class JwtService {
       if (Instant.now().getEpochSecond() > exp) return null;
       String sub = payload.path("sub").asText(null);
       long pid = payload.path("pid").asLong(-1);
-      if (sub == null || pid < 0) return null;
-      return new Session(sub, pid);
+      String role = payload.path("role").asText("user");
+      if (sub == null || pid < 0) {
+        // legacy admin check: keep old tokens working as plain users only
+        if (sub == null) return null;
+        if (pid < 0 && !"admin".equalsIgnoreCase(role)) return null;
+      }
+      return new Session(sub, pid, role == null ? "user" : role);
     } catch (Exception e) {
       return null;
     }

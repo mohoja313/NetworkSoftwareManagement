@@ -10,7 +10,6 @@ import com.networksoftware.dto.PublisherDto;
 import com.networksoftware.entity.Publisher;
 import com.networksoftware.repository.PublisherRepository;
 import com.networksoftware.repository.SoftwareRepository;
-
 @Service
 public class PublisherService {
 
@@ -49,5 +48,38 @@ public class PublisherService {
     return PublisherDto.of(p,
         softwareRepo.countByPublisherId(p.getId()),
         softwareRepo.findFirstPublishedAt(p.getId()));
+  }
+
+  /** Manager sets (or replaces) a password for a user so they can log in without a code. */
+  @Transactional
+  public Publisher setPassword(String email, String rawPassword, PasswordService passwords) {
+    PasswordService.requireStrongEnough(rawPassword);
+    Publisher p = getOrCreate(email);
+    PasswordService.Hashed h = passwords.hash(rawPassword);
+    p.setPasswordSalt(h.saltHex());
+    p.setPasswordHash(h.hashHex());
+    return publishers.save(p);
+  }
+
+  /** Removes the password (user goes back to code-only login). */
+  @Transactional
+  public Publisher clearPassword(long id) {
+    Publisher p = publishers.findById(id)
+        .orElseThrow(() -> new ApiException(404, "NOT_FOUND", "Publisher not found."));
+    p.setPasswordSalt(null);
+    p.setPasswordHash(null);
+    return publishers.save(p);
+  }
+
+  /** Verifies an email+password login; throws 401 on any mismatch. */
+  @Transactional(readOnly = true)
+  public Publisher verifyPassword(String email, String rawPassword) {
+    String e = OtpService.normalize(email);
+    Publisher p = publishers.findByEmail(e)
+        .orElseThrow(() -> new ApiException(401, "BAD_CREDENTIALS", "Incorrect email or password."));
+    if (!p.hasPassword() || !PasswordService.matches(rawPassword, p.getPasswordSalt(), p.getPasswordHash())) {
+      throw new ApiException(401, "BAD_CREDENTIALS", "Incorrect email or password.");
+    }
+    return p;
   }
 }

@@ -48,6 +48,12 @@ app:
     ttl-days: 30
   mail:
     from: ${MAIL_FROM:noreply@example.com}
+  admin:
+    username: ${APP_ADMIN_USERNAME:Admin}
+    # Manager password — change per deployment via YAML or APP_ADMIN_PASSWORD env.
+    password: ${APP_ADMIN_PASSWORD:admin}
+    # Manager Gmail (sender for user passwords/codes). Set after first Admin login or via env.
+    email: ${APP_ADMIN_EMAIL:}
 
 logging:
   level:

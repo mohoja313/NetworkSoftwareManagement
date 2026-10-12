@@ -140,8 +140,13 @@ public class SoftwareService {
 
   @Transactional
   public SoftwareDto update(long id, Long publisherId, SoftwareUpdateRequest req) {
+    return update(id, publisherId, false, req);
+  }
+
+  @Transactional
+  public SoftwareDto update(long id, Long publisherId, boolean isAdmin, SoftwareUpdateRequest req) {
     Software sw = require(id);
-    if (!sw.getPublisher().getId().equals(publisherId)) {
+    if (!isAdmin && !sw.getPublisher().getId().equals(publisherId)) {
       throw new ApiException(403, "NOT_OWNER", "Only the publisher can edit this software.");
     }
     if (req.platform() != null && req.platform() != sw.getPlatform()
@@ -158,8 +163,13 @@ public class SoftwareService {
 
   @Transactional
   public void delete(long id, Long publisherId) {
+    delete(id, publisherId, false);
+  }
+
+  @Transactional
+  public void delete(long id, Long publisherId, boolean isAdmin) {
     Software sw = require(id);
-    if (!sw.getPublisher().getId().equals(publisherId)) {
+    if (!isAdmin && !sw.getPublisher().getId().equals(publisherId)) {
       throw new ApiException(403, "NOT_OWNER", "Only the publisher can delete this software.");
     }
     softwareRepo.delete(sw);

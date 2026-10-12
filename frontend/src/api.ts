@@ -11,9 +11,14 @@ export function getToken(): string | null {
   }
 }
 
-export function setAuth(token: string, email: string, displayName: string): void {
+export function setAuth(
+  token: string,
+  email: string,
+  displayName: string,
+  extra?: { isAdmin?: boolean; role?: string },
+): void {
   localStorage.setItem(TOKEN_KEY, token);
-  localStorage.setItem(USER_KEY, JSON.stringify({ email, displayName }));
+  localStorage.setItem(USER_KEY, JSON.stringify({ email, displayName, ...extra }));
 }
 
 export function clearAuth(): void {
@@ -21,10 +26,10 @@ export function clearAuth(): void {
   localStorage.removeItem(USER_KEY);
 }
 
-export function getStoredUser(): { email: string; displayName: string } | null {
+export function getStoredUser(): { email: string; displayName: string; isAdmin?: boolean; role?: string } | null {
   try {
     const raw = localStorage.getItem(USER_KEY);
-    return raw ? (JSON.parse(raw) as { email: string; displayName: string }) : null;
+    return raw ? (JSON.parse(raw) as { email: string; displayName: string; isAdmin?: boolean; role?: string }) : null;
   } catch {
     return null;
   }
@@ -79,6 +84,65 @@ export function verifyCode(email: string, code: string): Promise<AuthResult> {
     method: 'POST',
     body: JSON.stringify({ email, code }),
   });
+}
+
+export function passwordLogin(email: string, password: string): Promise<AuthResult> {
+  return apiFetch<AuthResult>('/api/auth/password-login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export function adminLogin(username: string, password: string): Promise<AuthResult> {
+  return apiFetch<AuthResult>('/api/auth/admin-login', {
+    method: 'POST',
+    body: JSON.stringify({ username, password }),
+  });
+}
+
+export function adminSetEmail(email: string): Promise<AuthResult> {
+  return apiFetch<AuthResult>('/api/auth/admin/email', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export function adminSetup(email: string, password: string): Promise<AuthResult> {
+  return apiFetch<AuthResult>('/api/auth/admin-setup', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export function adminChangePassword(currentPassword: string, newPassword: string): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>('/api/admin/password', {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+}
+
+export function adminInfo(): Promise<{ username: string; email: string; emailSetup: boolean }> {
+  return apiFetch<{ username: string; email: string; emailSetup: boolean }>('/api/admin/info');
+}
+
+export function adminListUsers(): Promise<import('./types').AdminUser[]> {
+  return apiFetch<import('./types').AdminUser[]>('/api/admin/users');
+}
+
+export function adminUpsertUser(payload: {
+  email: string;
+  password: string;
+  displayName?: string;
+  sendEmail?: boolean;
+}): Promise<import('./types').AdminUser> {
+  return apiFetch<import('./types').AdminUser>('/api/admin/users', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function adminClearPassword(id: string | number): Promise<import('./types').AdminUser> {
+  return apiFetch<import('./types').AdminUser>(`/api/admin/users/${id}/password`, { method: 'DELETE' });
 }
 
 export function fetchMe(): Promise<MeResult> {

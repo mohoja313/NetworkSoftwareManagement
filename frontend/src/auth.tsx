@@ -1,16 +1,18 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { getStoredUser, getToken, clearAuth } from './api';
+import { getStoredUser, getToken, clearAuth, setAuth } from './api';
 
 export interface SessionUser {
   email: string;
   displayName: string;
+  isAdmin?: boolean;
+  role?: string;
 }
 
 interface AuthCtx {
   token: string | null;
   user: SessionUser | null;
-  setSession: (token: string, email: string, displayName: string) => void;
+  setSession: (token: string, email: string, displayName: string, extra?: { isAdmin?: boolean; role?: string }) => void;
   logout: () => void;
   authOpen: boolean;
   setAuthOpen: (open: boolean) => void;
@@ -32,11 +34,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
-  const setSession = useCallback((tok: string, email: string, displayName: string) => {
-    import('./api').then((m) => m.setAuth(tok, email, displayName));
-    setToken(tok);
-    setUser({ email, displayName });
-  }, []);
+  const setSession = useCallback(
+    (tok: string, email: string, displayName: string, extra?: { isAdmin?: boolean; role?: string }) => {
+      setAuth(tok, email, displayName, extra);
+      setToken(tok);
+      setUser({ email, displayName, ...extra });
+    },
+    [],
+  );
 
   const logout = useCallback(() => {
     clearAuth();

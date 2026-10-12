@@ -37,6 +37,7 @@ public class OtpService {
   private final OtpCodeRepository otpCodes;
   private final AppProperties props;
   private final JavaMailSender mailSender;
+  private final AdminService admin;
 
   @Value("${spring.mail.host:}")
   private String mailHost = "";
@@ -44,10 +45,12 @@ public class OtpService {
   @Value("${spring.mail.from:${app.mail.from:noreply@example.com}}")
   private String mailFrom = "noreply@example.com";
 
-  public OtpService(OtpCodeRepository otpCodes, AppProperties props, JavaMailSender mailSender) {
+  public OtpService(OtpCodeRepository otpCodes, AppProperties props, JavaMailSender mailSender,
+                    AdminService admin) {
     this.otpCodes = otpCodes;
     this.props = props;
     this.mailSender = mailSender;
+    this.admin = admin;
   }
 
   public static String normalize(String email) {
@@ -141,7 +144,8 @@ public class OtpService {
     }
     try {
       SimpleMailMessage msg = new SimpleMailMessage();
-      msg.setFrom(mailFrom);
+      // Sent from the manager's email when configured, else the global default.
+      msg.setFrom(admin.effectiveMailFrom(mailFrom));
       msg.setTo(email);
       msg.setSubject("Your Network Software Hub login code");
       msg.setText("Your verification code is: " + code + "\nIt is valid for "
@@ -150,6 +154,28 @@ public class OtpService {
       log.info("OTP email sent to {}", email);
     } catch (MailException ex) {
       log.warn("SMTP send failed for {} : {} — DEV fallback, code = {}", email, ex.getMessage(), code);
+    }
+  }
+
+  /** Sends a manager-defined password to a user from the manager's email address. */
+  public void sendPassword(String email, String rawPassword) {
+    if (mailHost == null || mailHost.isBlank()) {
+      log.warn("DEV-MODE PASSWORD for {} : password = {} (SMTP not configured, set MAIL_HOST to send real emails)",
+          email, rawPassword);
+      return;
+    }
+    try {
+      SimpleMailMessage msg = new SimpleMailMessage();
+      msg.setFrom(admin.effectiveMailFrom(mailFrom));
+      msg.setTo(email);
+      msg.setSubject("Your Network Software Hub password");
+      msg.setText("Your manager created a password for you: " + rawPassword
+          + "\nSign in with your email + this password (or keep using the email code).\n"
+          + "If you did not expect this, ignore the email.");
+      mailSender.send(msg);
+      log.info("Password email sent to {}", email);
+    } catch (MailException ex) {
+      log.warn("SMTP send failed for {} : {} — DEV fallback, password = {}", email, ex.getMessage(), rawPassword);
     }
   }
 }

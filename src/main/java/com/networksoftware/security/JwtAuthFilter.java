@@ -30,9 +30,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
       if (header != null && header.startsWith("Bearer ")) {
         JwtService.Session s = jwt.verify(header.substring(7).trim());
         if (s != null) {
-          AuthContext.set(new AuthContext.Session(s.email(), s.publisherId()));
+          AuthContext.set(new AuthContext.Session(s.email(), s.publisherId(), s.role()));
           request.setAttribute("authEmail", s.email());
           request.setAttribute("authPublisherId", s.publisherId());
+          request.setAttribute("authRole", s.role());
         }
       }
       chain.doFilter(request, response);
